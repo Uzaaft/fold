@@ -1,8 +1,8 @@
-# Swarm Reference Manual
+# Fold Reference Manual
 
 ## Repositories
 
-A repository is the top-level codebase record in `swarm`.
+A repository is the top-level codebase record in `fold`.
 
 Each repository maps to one remote git repository hosted on a forge.
 
@@ -12,13 +12,13 @@ The canonical repository identifier is:
 host/owner/name
 ```
 
-Example: `github.com/penberg/swarm`
+Example: `github.com/penberg/fold`
 
-`swarm repo` commands:
-- register a repository with `swarm`
+`fold repo` commands:
+- register a repository with `fold`
 - sync a repository's local bare clone from the remote
-- remove a repository from `swarm`
-- list repositories known to `swarm`
+- remove a repository from `fold`
+- list repositories known to `fold`
 
 Repository commands do not create workspaces or sessions.
 
@@ -28,7 +28,7 @@ A workspace is a local checkout for a registered repository.
 
 Each workspace belongs to exactly one repository and is backed by a git worktree on disk.
 
-`swarm workspace` commands:
+`fold workspace` commands:
 - create a new local worktree for a repository
 - clone a workspace into a new local worktree
 - list workspaces for a repository
@@ -39,11 +39,11 @@ Each workspace belongs to exactly one repository and is backed by a git worktree
 
 A session is a command environment attached to one workspace.
 
-Sessions are the operational unit that `swarm` runs, attaches to, and eventually shows as terminal tabs in the TUI.
+Sessions are the operational unit that `fold` runs, attaches to, and eventually shows as terminal tabs in the TUI.
 
 Each session belongs to exactly one workspace.
 
-`swarm session` commands:
+`fold session` commands:
 - create a new session for a workspace
 - list sessions
 - inspect session metadata
@@ -52,23 +52,23 @@ Each session belongs to exactly one workspace.
 
 ## Prune
 
-`swarm prune` removes local state that is no longer useful.
+`fold prune` removes local state that is no longer useful.
 
-`swarm prune` commands:
+`fold prune` commands:
 - prune stopped, failed, or exited sessions
 
 ## On-Disk Format
 
-`swarm` stores persistent state in the XDG data directory:
+`fold` stores persistent state in the XDG data directory:
 
 ```text
-~/.local/share/swarm/
+~/.local/share/fold/
 ```
 
 Layout:
 
 ```text
-~/.local/share/swarm/
+~/.local/share/fold/
   index.db
   repos/
     <host>/
@@ -86,7 +86,7 @@ Layout:
 
 ### `index.db`
 
-Global repository index. Used by `swarm repo list`, `swarm repo add`, and `swarm repo remove`.
+Global repository index. Used by `fold repo list`, `fold repo add`, and `fold repo remove`.
 
 Stores one row per repository:
 - `host`
@@ -102,7 +102,7 @@ Canonical identity: the `(host, owner, name)` tuple. Aliases are shortcuts, not 
 Per-repository directory. Example:
 
 ```text
-~/.local/share/swarm/repos/github.com/penberg/swarm/
+~/.local/share/fold/repos/github.com/penberg/fold/
 ```
 
 Contains repository-specific state and worktree directories.
@@ -114,9 +114,9 @@ Repository metadata. Example:
 ```toml
 host = "github.com"
 owner = "penberg"
-name = "swarm"
-canonical = "github.com/penberg/swarm"
-alias = "swarm"
+name = "fold"
+canonical = "github.com/penberg/fold"
+alias = "fold"
 ```
 
 ### `repo.db`
@@ -132,7 +132,7 @@ Repository-local database. Stores:
 Git worktree checkout directories. Example:
 
 ```text
-~/.local/share/swarm/repos/github.com/penberg/swarm/workspaces/main/
+~/.local/share/fold/repos/github.com/penberg/fold/workspaces/main/
 ```
 
 The workspace name is the identifier within that repository.
@@ -142,7 +142,7 @@ The workspace name is the identifier within that repository.
 Per-session runtime state. Example:
 
 ```text
-~/.local/share/swarm/repos/github.com/penberg/swarm/sessions/01JSESSIONEXAMPLE/
+~/.local/share/fold/repos/github.com/penberg/fold/sessions/01JSESSIONEXAMPLE/
 ```
 
 This directory is intended to hold session-local files such as:
@@ -161,20 +161,20 @@ Sessions are stored under the repository shard because they are attached to work
 
 ## Command Line Reference
 
-### `swarm session`
+### `fold session`
 
 Manage workspace sessions.
 
 Future TUI terminal tabs should map to sessions, not directly to workspaces.
 
-### `swarm session create`
+### `fold session create`
 
 Create a session for a workspace.
 
 #### Usage
 
 ```text
-swarm session create <workspace> -- <command> [args...]
+fold session create <workspace> -- <command> [args...]
 ```
 
 #### Arguments
@@ -191,20 +191,20 @@ swarm session create <workspace> -- <command> [args...]
 #### Examples
 
 ```text
-swarm session create swarm/main -- bash
-swarm session create swarm/github-actions -- cargo test
+fold session create fold/main -- bash
+fold session create fold/github-actions -- cargo test
 ```
 
-### `swarm session list`
+### `fold session list`
 
 List sessions.
 
 #### Usage
 
 ```text
-swarm session list
-swarm session list <workspace>
-swarm session list --json
+fold session list
+fold session list <workspace>
+fold session list --json
 ```
 
 #### Arguments
@@ -217,17 +217,17 @@ swarm session list --json
 
 #### Behavior
 
-- Lists sessions known to local `swarm` state.
+- Lists sessions known to local `fold` state.
 - When `<workspace>` is provided, filters to that workspace.
 
-### `swarm session info`
+### `fold session info`
 
 Show metadata for one session.
 
 #### Usage
 
 ```text
-swarm session info <session>
+fold session info <session>
 ```
 
 #### Arguments
@@ -238,14 +238,14 @@ swarm session info <session>
 
 - Prints session metadata such as workspace, command, status, and timestamps.
 
-### `swarm session attach`
+### `fold session attach`
 
 Attach to an existing session.
 
 #### Usage
 
 ```text
-swarm session attach <session>
+fold session attach <session>
 ```
 
 #### Arguments
@@ -259,14 +259,14 @@ swarm session attach <session>
 - Press `Ctrl-]` to detach without terminating the session.
 - `Ctrl-D` is passed through to the attached process and may cause shells to exit.
 
-### `swarm session stop`
+### `fold session stop`
 
 Stop a running session.
 
 #### Usage
 
 ```text
-swarm session stop <session>
+fold session stop <session>
 ```
 
 #### Arguments
@@ -278,23 +278,23 @@ swarm session stop <session>
 - Requests session termination.
 - Marks the session as stopped in local state.
 
-### `swarm prune`
+### `fold prune`
 
 Prune local state.
 
-### `swarm prune sessions`
+### `fold prune sessions`
 
 Prune stopped, failed, or exited sessions.
 
 #### Usage
 
 ```text
-swarm prune sessions
+fold prune sessions
 ```
 
 #### Behavior
 
-- Scans all repositories known to local `swarm` state.
+- Scans all repositories known to local `fold` state.
 - Removes sessions whose status is `stopped`, `failed`, or `exited`.
 - Leaves `starting` and `running` sessions untouched.
 
@@ -304,19 +304,19 @@ swarm prune sessions
 Pruned 2 sessions
 ```
 
-### `swarm workspace`
+### `fold workspace`
 
-Manage repository workspaces. Alias: `swarm ws`.
+Manage repository workspaces. Alias: `fold ws`.
 
-### `swarm workspace create`
+### `fold workspace create`
 
 Create a workspace for a repository.
 
 #### Usage
 
 ```text
-swarm workspace create <repository> [name]
-swarm ws create <repository> [name]
+fold workspace create <repository> [name]
+fold ws create <repository> [name]
 ```
 
 #### Arguments
@@ -335,27 +335,27 @@ swarm ws create <repository> [name]
 #### Examples
 
 ```text
-swarm workspace create swarm
-swarm workspace create swarm feature-x
-swarm ws create github.com/penberg/swarm review-docs
+fold workspace create fold
+fold workspace create fold feature-x
+fold ws create github.com/penberg/fold review-docs
 ```
 
 #### Expected Output
 
 ```text
-Created workspace main for swarm
+Created workspace main for fold
 Created session 01JSESSIONEXAMPLE
 ```
 
-### `swarm workspace clone`
+### `fold workspace clone`
 
 Clone a workspace into a new workspace.
 
 #### Usage
 
 ```text
-swarm workspace clone <workspace> <name>
-swarm ws clone <workspace> <name>
+fold workspace clone <workspace> <name>
+fold ws clone <workspace> <name>
 ```
 
 #### Arguments
@@ -374,27 +374,27 @@ swarm ws clone <workspace> <name>
 #### Examples
 
 ```text
-swarm workspace clone swarm:main feature-x
-swarm ws clone swarm/bugfix bugfix-copy
+fold workspace clone fold:main feature-x
+fold ws clone fold/bugfix bugfix-copy
 ```
 
 #### Expected Output
 
 ```text
-Cloned workspace swarm:main to feature-x for swarm
+Cloned workspace fold:main to feature-x for fold
 Created session 01JSESSIONEXAMPLE
 ```
 
-### `swarm workspace list`
+### `fold workspace list`
 
 List workspaces for a repository.
 
 #### Usage
 
 ```text
-swarm workspace list <repository>
-swarm ws list <repository>
-swarm workspace list <repository> --json
+fold workspace list <repository>
+fold ws list <repository>
+fold workspace list <repository> --json
 ```
 
 #### Arguments
@@ -413,19 +413,19 @@ swarm workspace list <repository> --json
 #### Examples
 
 ```text
-swarm workspace list swarm
-swarm ws list github.com/penberg/swarm --json
+fold workspace list fold
+fold ws list github.com/penberg/fold --json
 ```
 
-### `swarm workspace info`
+### `fold workspace info`
 
 Show metadata for one workspace.
 
 #### Usage
 
 ```text
-swarm workspace info <workspace>
-swarm ws info <workspace>
+fold workspace info <workspace>
+fold ws info <workspace>
 ```
 
 #### Arguments
@@ -436,15 +436,15 @@ swarm ws info <workspace>
 
 - Prints workspace metadata: repository, name, path, creation time.
 
-### `swarm workspace remove`
+### `fold workspace remove`
 
 Remove a workspace.
 
 #### Usage
 
 ```text
-swarm workspace remove <workspace>
-swarm ws remove <workspace>
+fold workspace remove <workspace>
+fold ws remove <workspace>
 ```
 
 #### Arguments
@@ -457,14 +457,14 @@ swarm ws remove <workspace>
 - Removes the corresponding git worktree.
 - Removes the workspace directory on disk.
 
-### `swarm repo add`
+### `fold repo add`
 
-Register a repository with `swarm`.
+Register a repository with `fold`.
 
 #### Usage
 
 ```text
-swarm repo add <host/owner/name|remote-url> [--alias <name>]
+fold repo add <host/owner/name|remote-url> [--alias <name>]
 ```
 
 #### Arguments
@@ -473,7 +473,7 @@ swarm repo add <host/owner/name|remote-url> [--alias <name>]
 
 #### Options
 
-- `--alias <name>`: Optional local shorthand for the repository. If omitted, `swarm` uses the repository name as the default alias.
+- `--alias <name>`: Optional local shorthand for the repository. If omitted, `fold` uses the repository name as the default alias.
 
 #### Behavior
 
@@ -486,26 +486,26 @@ swarm repo add <host/owner/name|remote-url> [--alias <name>]
 #### Examples
 
 ```text
-swarm repo add github.com/penberg/swarm
-swarm repo add github.com/penberg/other --alias other
-swarm repo add git@github.com:penberg/private-repo.git --alias private
+fold repo add github.com/penberg/fold
+fold repo add github.com/penberg/other --alias other
+fold repo add git@github.com:penberg/private-repo.git --alias private
 ```
 
 #### Expected Output
 
 ```text
-Added repo swarm
+Added repo fold
 ```
 
-### `swarm repo list`
+### `fold repo list`
 
-List repositories registered with `swarm`.
+List repositories registered with `fold`.
 
 #### Usage
 
 ```text
-swarm repo list
-swarm repo list --json
+fold repo list
+fold repo list --json
 ```
 
 #### Options
@@ -520,25 +520,25 @@ swarm repo list --json
 #### Examples
 
 ```text
-swarm repo list
-swarm repo list --json
+fold repo list
+fold repo list --json
 ```
 
 #### Expected Output
 
 ```text
 ALIAS            REPOSITORY
-swarm            github.com/penberg/swarm
+fold            github.com/penberg/fold
 ```
 
-### `swarm repo sync`
+### `fold repo sync`
 
 Sync a registered repository from its remote.
 
 #### Usage
 
 ```text
-swarm repo sync <repository>
+fold repo sync <repository>
 ```
 
 #### Arguments
@@ -554,24 +554,24 @@ swarm repo sync <repository>
 #### Examples
 
 ```text
-swarm repo sync swarm
-swarm repo sync github.com/penberg/swarm
+fold repo sync fold
+fold repo sync github.com/penberg/fold
 ```
 
 #### Expected Output
 
 ```text
-Synced repo swarm
+Synced repo fold
 ```
 
-### `swarm repo remove`
+### `fold repo remove`
 
-Remove a repository from `swarm`.
+Remove a repository from `fold`.
 
 #### Usage
 
 ```text
-swarm repo remove <repository>
+fold repo remove <repository>
 ```
 
 #### Arguments
@@ -587,14 +587,14 @@ swarm repo remove <repository>
 #### Examples
 
 ```text
-swarm repo remove swarm
-swarm repo remove github.com/penberg/swarm
+fold repo remove fold
+fold repo remove github.com/penberg/fold
 ```
 
 #### Expected Output
 
 ```text
-Removed repo swarm
+Removed repo fold
 ```
 
 ## Exit Codes

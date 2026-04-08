@@ -8,7 +8,7 @@ use std::{
 };
 use turso::{Builder, Connection};
 
-use crate::{SwarmError, database_error};
+use crate::{FoldError, database_error};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Repository {
@@ -21,14 +21,14 @@ pub struct Repository {
 }
 
 impl Repository {
-    pub fn parse(input: &str, alias: Option<&str>) -> Result<Self, SwarmError> {
+    pub fn parse(input: &str, alias: Option<&str>) -> Result<Self, FoldError> {
         let input = input.trim();
         let (host, owner, name, remote_url) = parse_remote_reference(input)
             .or_else(|| {
                 parse_canonical_reference(input)
                     .map(|(host, owner, name)| (host, owner, name, None))
             })
-            .ok_or_else(|| SwarmError::InvalidRepository(input.to_string()))?;
+            .ok_or_else(|| FoldError::InvalidRepository(input.to_string()))?;
 
         let default_alias = alias
             .map(str::trim)
@@ -63,16 +63,15 @@ impl Repository {
 }
 
 #[derive(Debug, Clone)]
-struct SwarmPaths {
+struct FoldPaths {
     data_dir: PathBuf,
     repos_dir: PathBuf,
     index_db_path: PathBuf,
 }
 
-impl SwarmPaths {
-    fn resolve() -> Result<Self, SwarmError> {
-        let dirs =
-            ProjectDirs::from("com", "penberg", "swarm").ok_or(SwarmError::PathResolution)?;
+impl FoldPaths {
+    fn resolve() -> Result<Self, FoldError> {
+        let dirs = ProjectDirs::from("com", "penberg", "fold").ok_or(FoldError::PathResolution)?;
         let data_dir = dirs.data_dir().to_path_buf();
         let repos_dir = data_dir.join("repos");
         let index_db_path = data_dir.join("index.db");
@@ -101,13 +100,13 @@ impl SwarmPaths {
 }
 
 pub struct RepositoryStore {
-    paths: SwarmPaths,
+    paths: FoldPaths,
     conn: Connection,
 }
 
 impl RepositoryStore {
-    pub async fn open() -> Result<Self, SwarmError> {
-        let paths = SwarmPaths::resolve()?;
+    pub async fn open() -> Result<Self, FoldError> {
+        let paths = FoldPaths::resolve()?;
         fs::create_dir_all(&paths.data_dir)?;
         fs::create_dir_all(&paths.repos_dir)?;
 
@@ -150,16 +149,16 @@ impl RepositoryStore {
         &self,
         repository: &str,
         alias: Option<&str>,
-    ) -> Result<Repository, SwarmError> {
+    ) -> Result<Repository, FoldError> {
         let repo = Repository::parse(repository, alias)?;
 
         if self.find_repository(&repo).await?.is_some() {
-            return Err(SwarmError::DuplicateRepository(repo.canonical()));
+            return Err(FoldError::DuplicateRepository(repo.canonical()));
         }
 
         if let Some(alias) = &repo.alias {
             if self.find_alias(alias).await? {
-                return Err(SwarmError::DuplicateAlias(alias.clone()));
+                return Err(FoldError::DuplicateAlias(alias.clone()));
             }
         }
 
@@ -207,7 +206,7 @@ impl RepositoryStore {
         Ok(repo)
     }
 
-    pub async fn list(&self) -> Result<Vec<Repository>, SwarmError> {
+    pub async fn list(&self) -> Result<Vec<Repository>, FoldError> {
         let mut stmt = self
             .conn
             .prepare(
@@ -234,17 +233,17 @@ impl RepositoryStore {
         Ok(repos)
     }
 
-    pub async fn sync(&self, repository: &str) -> Result<Repository, SwarmError> {
+    pub async fn sync(&self, repository: &str) -> Result<Repository, FoldError> {
         let repo = self
             .resolve(repository)
             .await?
-            .ok_or_else(|| SwarmError::RepositoryNotFound(repository.to_string()))?;
+            .ok_or_else(|| FoldError::RepositoryNotFound(repository.to_string()))?;
         self.sync_repo(&repo)?;
 
         Ok(repo)
     }
 
-    pub fn sync_repo(&self, repo: &Repository) -> Result<(), SwarmError> {
+    pub fn sync_repo(&self, repo: &Repository) -> Result<(), FoldError> {
         let repo_dir = self.paths.repo_dir(repo);
         let bare_repo_path = self.bare_repo_path(repo);
         let remote_url = repo.remote_url();
@@ -313,7 +312,7 @@ impl RepositoryStore {
     pub async fn resolve_repository(
         &self,
         reference: &str,
-    ) -> Result<Option<Repository>, SwarmError> {
+    ) -> Result<Option<Repository>, FoldError> {
         self.resolve(reference).await
     }
 
@@ -337,11 +336,11 @@ impl RepositoryStore {
         self.paths.repo_dir(repo).join("sessions")
     }
 
-    pub async fn remove(&self, repository: &str) -> Result<Repository, SwarmError> {
+    pub async fn remove(&self, repository: &str) -> Result<Repository, FoldError> {
         let repo = self
             .resolve(repository)
             .await?
-            .ok_or_else(|| SwarmError::RepositoryNotFound(repository.to_string()))?;
+            .ok_or_else(|| FoldError::RepositoryNotFound(repository.to_string()))?;
 
         self.conn
             .execute(
@@ -358,15 +357,15 @@ impl RepositoryStore {
         Ok(repo)
     }
 
-    pub async fn collapse(&self, repository: &str) -> Result<Repository, SwarmError> {
+    pub async fn collapse(&self, repository: &str) -> Result<Repository, FoldError> {
         self.set_collapsed(repository, true).await
     }
 
-    pub async fn expand(&self, repository: &str) -> Result<Repository, SwarmError> {
+    pub async fn expand(&self, repository: &str) -> Result<Repository, FoldError> {
         self.set_collapsed(repository, false).await
     }
 
-    async fn find_repository(&self, repo: &Repository) -> Result<Option<Repository>, SwarmError> {
+    async fn find_repository(&self, repo: &Repository) -> Result<Option<Repository>, FoldError> {
         let mut stmt = self
             .conn
             .prepare(
@@ -394,7 +393,7 @@ impl RepositoryStore {
         Ok(None)
     }
 
-    async fn find_alias(&self, alias: &str) -> Result<bool, SwarmError> {
+    async fn find_alias(&self, alias: &str) -> Result<bool, FoldError> {
         let mut stmt = self
             .conn
             .prepare("SELECT 1 FROM repos WHERE alias = ?1 LIMIT 1")
@@ -403,7 +402,7 @@ impl RepositoryStore {
         Ok(rows.next().await?.is_some())
     }
 
-    async fn resolve(&self, reference: &str) -> Result<Option<Repository>, SwarmError> {
+    async fn resolve(&self, reference: &str) -> Result<Option<Repository>, FoldError> {
         if let Some(repo) = self.find_by_alias(reference).await? {
             return Ok(Some(repo));
         }
@@ -425,7 +424,7 @@ impl RepositoryStore {
         Ok(None)
     }
 
-    async fn find_by_alias(&self, alias: &str) -> Result<Option<Repository>, SwarmError> {
+    async fn find_by_alias(&self, alias: &str) -> Result<Option<Repository>, FoldError> {
         let mut stmt = self
             .conn
             .prepare(
@@ -456,11 +455,11 @@ impl RepositoryStore {
         &self,
         repository: &str,
         collapsed: bool,
-    ) -> Result<Repository, SwarmError> {
+    ) -> Result<Repository, FoldError> {
         let repo = self
             .resolve(repository)
             .await?
-            .ok_or_else(|| SwarmError::RepositoryNotFound(repository.to_string()))?;
+            .ok_or_else(|| FoldError::RepositoryNotFound(repository.to_string()))?;
 
         self.conn
             .execute(
@@ -480,7 +479,7 @@ impl RepositoryStore {
     }
 }
 
-async fn ensure_collapsed_column(conn: &Connection, path: &Path) -> Result<(), SwarmError> {
+async fn ensure_collapsed_column(conn: &Connection, path: &Path) -> Result<(), FoldError> {
     if has_column(conn, "repos", "collapsed").await? {
         return Ok(());
     }
@@ -495,7 +494,7 @@ async fn ensure_collapsed_column(conn: &Connection, path: &Path) -> Result<(), S
     Ok(())
 }
 
-async fn ensure_remote_url_column(conn: &Connection, path: &Path) -> Result<(), SwarmError> {
+async fn ensure_remote_url_column(conn: &Connection, path: &Path) -> Result<(), FoldError> {
     if has_column(conn, "repos", "remote_url").await? {
         return Ok(());
     }
@@ -507,7 +506,7 @@ async fn ensure_remote_url_column(conn: &Connection, path: &Path) -> Result<(), 
     Ok(())
 }
 
-async fn has_column(conn: &Connection, table: &str, column: &str) -> Result<bool, SwarmError> {
+async fn has_column(conn: &Connection, table: &str, column: &str) -> Result<bool, FoldError> {
     let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})")).await?;
     let mut rows = stmt.query(()).await?;
 
@@ -520,11 +519,11 @@ async fn has_column(conn: &Connection, table: &str, column: &str) -> Result<bool
     Ok(false)
 }
 
-fn path_to_string(path: &Path) -> Result<&str, SwarmError> {
-    path.to_str().ok_or(SwarmError::PathResolution)
+fn path_to_string(path: &Path) -> Result<&str, FoldError> {
+    path.to_str().ok_or(FoldError::PathResolution)
 }
 
-fn git_is_bare_repository(path: &Path) -> Result<bool, SwarmError> {
+fn git_is_bare_repository(path: &Path) -> Result<bool, FoldError> {
     let output = Command::new("git")
         .arg(format!("--git-dir={}", path.display()))
         .args(["rev-parse", "--is-bare-repository"])
@@ -537,7 +536,7 @@ fn git_is_bare_repository(path: &Path) -> Result<bool, SwarmError> {
     Ok(String::from_utf8_lossy(&output.stdout).trim() == "true")
 }
 
-fn git_has_remote(path: &Path, remote: &str) -> Result<bool, SwarmError> {
+fn git_has_remote(path: &Path, remote: &str) -> Result<bool, FoldError> {
     let output = Command::new("git")
         .arg(format!("--git-dir={}", path.display()))
         .args(["remote", "get-url", remote])
@@ -546,7 +545,7 @@ fn git_has_remote(path: &Path, remote: &str) -> Result<bool, SwarmError> {
     Ok(output.status.success())
 }
 
-fn run_git<I, S>(cwd: Option<&Path>, args: I) -> Result<String, SwarmError>
+fn run_git<I, S>(cwd: Option<&Path>, args: I) -> Result<String, FoldError>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
@@ -562,7 +561,7 @@ where
 
     let output = cmd.output()?;
     if !output.status.success() {
-        return Err(SwarmError::Git(render_git_failure(output)));
+        return Err(FoldError::Git(render_git_failure(output)));
     }
 
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
@@ -704,54 +703,54 @@ mod tests {
         let repo = Repository {
             host: "github".to_string(),
             owner: "penberg".to_string(),
-            name: "swarm".to_string(),
+            name: "fold".to_string(),
             alias: None,
             remote_url: None,
             collapsed: false,
         };
 
-        assert_eq!(repo.remote_url(), "https://github.com/penberg/swarm.git");
+        assert_eq!(repo.remote_url(), "https://github.com/penberg/fold.git");
     }
 
     #[test]
     fn parses_https_remote_url() {
-        let repo = Repository::parse("https://github.com/penberg/swarm.git", None).unwrap();
+        let repo = Repository::parse("https://github.com/penberg/fold.git", None).unwrap();
 
         assert_eq!(
             (repo.host.as_str(), repo.owner.as_str(), repo.name.as_str()),
-            ("github.com", "penberg", "swarm")
+            ("github.com", "penberg", "fold")
         );
         assert_eq!(
             repo.remote_url.as_deref(),
-            Some("https://github.com/penberg/swarm.git")
+            Some("https://github.com/penberg/fold.git")
         );
     }
 
     #[test]
     fn parses_ssh_remote_url() {
-        let repo = Repository::parse("git@github.com:penberg/swarm.git", None).unwrap();
+        let repo = Repository::parse("git@github.com:penberg/fold.git", None).unwrap();
 
         assert_eq!(
             (repo.host.as_str(), repo.owner.as_str(), repo.name.as_str()),
-            ("github.com", "penberg", "swarm")
+            ("github.com", "penberg", "fold")
         );
         assert_eq!(
             repo.remote_url.as_deref(),
-            Some("git@github.com:penberg/swarm.git")
+            Some("git@github.com:penberg/fold.git")
         );
     }
 
     #[test]
     fn parses_ssh_scheme_remote_url() {
-        let repo = Repository::parse("ssh://git@github.com/penberg/swarm.git", None).unwrap();
+        let repo = Repository::parse("ssh://git@github.com/penberg/fold.git", None).unwrap();
 
         assert_eq!(
             (repo.host.as_str(), repo.owner.as_str(), repo.name.as_str()),
-            ("github.com", "penberg", "swarm")
+            ("github.com", "penberg", "fold")
         );
         assert_eq!(
             repo.remote_url.as_deref(),
-            Some("ssh://git@github.com/penberg/swarm.git")
+            Some("ssh://git@github.com/penberg/fold.git")
         );
     }
 }

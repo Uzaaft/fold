@@ -1,14 +1,14 @@
+use fold::{
+    FoldError,
+    repos::{Repository, RepositoryStore},
+    sessions::{SessionStore, default_session_command},
+    workspaces::{Workspace, WorkspaceStore},
+};
 use std::{
     fs, io,
     path::{Path, PathBuf},
     process::Command,
     time::{Duration, SystemTime},
-};
-use swarm::{
-    SwarmError,
-    repos::{Repository, RepositoryStore},
-    sessions::{SessionStore, default_session_command},
-    workspaces::{Workspace, WorkspaceStore},
 };
 
 #[derive(Debug, Clone)]
@@ -40,7 +40,7 @@ pub struct SessionEntry {
     pub socket_path: String,
 }
 
-pub fn load_workspace_groups() -> Result<Vec<WorkspaceGroup>, SwarmError> {
+pub fn load_workspace_groups() -> Result<Vec<WorkspaceGroup>, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -70,11 +70,7 @@ pub fn load_workspace_groups() -> Result<Vec<WorkspaceGroup>, SwarmError> {
                     })
                     .collect::<Vec<_>>();
 
-                Ok::<WorkspaceEntry, SwarmError>(map_workspace(
-                    &repo_canonical,
-                    workspace,
-                    sessions,
-                ))
+                Ok::<WorkspaceEntry, FoldError>(map_workspace(&repo_canonical, workspace, sessions))
             });
             let mut workspace_entries = Vec::new();
             for workspace in workspaces {
@@ -96,10 +92,7 @@ pub fn load_workspace_groups() -> Result<Vec<WorkspaceGroup>, SwarmError> {
     })
 }
 
-pub fn create_workspace(
-    repository: &str,
-    name: Option<&str>,
-) -> Result<WorkspaceEntry, SwarmError> {
+pub fn create_workspace(repository: &str, name: Option<&str>) -> Result<WorkspaceEntry, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -109,7 +102,7 @@ pub fn create_workspace(
         let repo = repo_store
             .resolve_repository(repository)
             .await?
-            .ok_or_else(|| SwarmError::RepositoryNotFound(repository.to_string()))?;
+            .ok_or_else(|| FoldError::RepositoryNotFound(repository.to_string()))?;
         let workspace = workspace_store.create(repository, name).await?;
         let workspace_ref = format!("{}:{}", workspace.repository, workspace.name);
         if let Err(err) = session_store
@@ -136,7 +129,7 @@ pub fn create_workspace(
     })
 }
 
-pub fn add_repository(repository: &str, alias: Option<&str>) -> Result<Repository, SwarmError> {
+pub fn add_repository(repository: &str, alias: Option<&str>) -> Result<Repository, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -144,7 +137,7 @@ pub fn add_repository(repository: &str, alias: Option<&str>) -> Result<Repositor
     })
 }
 
-pub fn sync_repository(repository: &str) -> Result<(), SwarmError> {
+pub fn sync_repository(repository: &str) -> Result<(), FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -153,7 +146,7 @@ pub fn sync_repository(repository: &str) -> Result<(), SwarmError> {
     })
 }
 
-pub fn collapse_repository(repository: &str) -> Result<(), SwarmError> {
+pub fn collapse_repository(repository: &str) -> Result<(), FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -162,7 +155,7 @@ pub fn collapse_repository(repository: &str) -> Result<(), SwarmError> {
     })
 }
 
-pub fn expand_repository(repository: &str) -> Result<(), SwarmError> {
+pub fn expand_repository(repository: &str) -> Result<(), FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -171,7 +164,7 @@ pub fn expand_repository(repository: &str) -> Result<(), SwarmError> {
     })
 }
 
-pub fn rename_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntry, SwarmError> {
+pub fn rename_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntry, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -181,7 +174,7 @@ pub fn rename_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntr
         let repo = repo_store
             .resolve_repository(&workspace.repository)
             .await?
-            .ok_or_else(|| SwarmError::RepositoryNotFound(workspace.repository.clone()))?;
+            .ok_or_else(|| FoldError::RepositoryNotFound(workspace.repository.clone()))?;
         let workspace_ref = format!("{}:{}", workspace.repository, workspace.name);
         let sessions = session_store
             .list(Some(&workspace_ref))
@@ -201,7 +194,7 @@ pub fn rename_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntr
     })
 }
 
-pub fn clone_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntry, SwarmError> {
+pub fn clone_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntry, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -211,7 +204,7 @@ pub fn clone_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntry
         let repo = repo_store
             .resolve_repository(&workspace.repository)
             .await?
-            .ok_or_else(|| SwarmError::RepositoryNotFound(workspace.repository.clone()))?;
+            .ok_or_else(|| FoldError::RepositoryNotFound(workspace.repository.clone()))?;
         let workspace_ref = format!("{}:{}", workspace.repository, workspace.name);
         if let Err(err) = session_store
             .create(&workspace_ref, &default_session_command())
@@ -237,7 +230,7 @@ pub fn clone_workspace(workspace_ref: &str, name: &str) -> Result<WorkspaceEntry
     })
 }
 
-pub fn remove_workspace(workspace_ref: &str) -> Result<WorkspaceEntry, SwarmError> {
+pub fn remove_workspace(workspace_ref: &str) -> Result<WorkspaceEntry, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let repo_store = RepositoryStore::open().await?;
@@ -254,13 +247,13 @@ pub fn remove_workspace(workspace_ref: &str) -> Result<WorkspaceEntry, SwarmErro
         let repo = repo_store
             .resolve_repository(&workspace.repository)
             .await?
-            .ok_or_else(|| SwarmError::RepositoryNotFound(workspace.repository.clone()))?;
+            .ok_or_else(|| FoldError::RepositoryNotFound(workspace.repository.clone()))?;
 
         Ok(map_workspace(&repo.canonical(), workspace, Vec::new()))
     })
 }
 
-pub fn create_session(workspace_ref: &str) -> Result<SessionEntry, SwarmError> {
+pub fn create_session(workspace_ref: &str) -> Result<SessionEntry, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let session_store = SessionStore::open().await?;
@@ -279,7 +272,7 @@ pub fn create_session(workspace_ref: &str) -> Result<SessionEntry, SwarmError> {
     })
 }
 
-pub fn close_session(session_id: &str) -> Result<SessionEntry, SwarmError> {
+pub fn close_session(session_id: &str) -> Result<SessionEntry, FoldError> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async {
         let session_store = SessionStore::open().await?;
@@ -297,7 +290,7 @@ pub fn close_session(session_id: &str) -> Result<SessionEntry, SwarmError> {
     })
 }
 
-pub fn current_workspace_branch(path: &str) -> Result<String, SwarmError> {
+pub fn current_workspace_branch(path: &str) -> Result<String, FoldError> {
     let path = Path::new(path);
     let branch = run_git(path, ["branch", "--show-current"])?;
     if !branch.is_empty() {
@@ -307,11 +300,11 @@ pub fn current_workspace_branch(path: &str) -> Result<String, SwarmError> {
     run_git(path, ["rev-parse", "--short", "HEAD"])
 }
 
-pub fn current_workspace_head(path: &str) -> Result<String, SwarmError> {
+pub fn current_workspace_head(path: &str) -> Result<String, FoldError> {
     run_git(Path::new(path), ["rev-parse", "HEAD"])
 }
 
-pub fn workspace_head_path(path: &str) -> Result<PathBuf, SwarmError> {
+pub fn workspace_head_path(path: &str) -> Result<PathBuf, FoldError> {
     let workspace_path = Path::new(path);
     let git_path = workspace_path.join(".git");
     let git_dir = if git_path.is_dir() {
@@ -535,13 +528,13 @@ fn is_interpreter(name: &str) -> bool {
     )
 }
 
-fn resolve_gitdir_file(git_path: &Path, workspace_path: &Path) -> Result<PathBuf, SwarmError> {
+fn resolve_gitdir_file(git_path: &Path, workspace_path: &Path) -> Result<PathBuf, FoldError> {
     let contents = fs::read_to_string(git_path)?;
     let git_dir = contents
         .strip_prefix("gitdir: ")
         .map(str::trim)
         .filter(|path| !path.is_empty())
-        .ok_or_else(|| SwarmError::Git(format!("invalid gitdir file at {}", git_path.display())))?;
+        .ok_or_else(|| FoldError::Git(format!("invalid gitdir file at {}", git_path.display())))?;
 
     let git_dir = Path::new(git_dir);
     if git_dir.is_absolute() {
@@ -551,7 +544,7 @@ fn resolve_gitdir_file(git_path: &Path, workspace_path: &Path) -> Result<PathBuf
     Ok(workspace_path.join(git_dir))
 }
 
-fn run_git<I, S>(cwd: &Path, args: I) -> Result<String, SwarmError>
+fn run_git<I, S>(cwd: &Path, args: I) -> Result<String, FoldError>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
@@ -565,7 +558,7 @@ where
 
     let output = cmd.output()?;
     if !output.status.success() {
-        return Err(SwarmError::Git(render_git_failure(output)));
+        return Err(FoldError::Git(render_git_failure(output)));
     }
 
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())

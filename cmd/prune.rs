@@ -1,10 +1,10 @@
 use crate::{
-    SwarmError,
+    FoldError,
     opts::{PruneCommand, PruneSubcommand},
     prune::PruneStore,
 };
 
-pub async fn run(cmd: PruneCommand) -> Result<(), SwarmError> {
+pub async fn run(cmd: PruneCommand) -> Result<(), FoldError> {
     let store = PruneStore::open().await?;
 
     match cmd.command {

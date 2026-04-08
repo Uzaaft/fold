@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum SwarmError {
+pub enum FoldError {
     #[error("{0}")]
     Io(#[from] std::io::Error),
 
@@ -64,12 +64,12 @@ pub enum SwarmError {
     #[error("git command failed: {0}")]
     Git(String),
 
-    #[error("failed to resolve swarm data directory")]
+    #[error("failed to resolve fold data directory")]
     PathResolution,
 }
 
-pub fn database_error(path: &Path, operation: &str, source: turso::Error) -> SwarmError {
-    SwarmError::Database {
+pub fn database_error(path: &Path, operation: &str, source: turso::Error) -> FoldError {
+    FoldError::Database {
         path: path.to_path_buf(),
         operation: operation.to_string(),
         source,

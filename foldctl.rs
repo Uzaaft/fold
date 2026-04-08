@@ -1,6 +1,6 @@
 use clap::Parser;
-use swarm::cmd;
-use swarm::opts::{Command, Opts};
+use fold::cmd;
+use fold::opts::{Command, Opts};
 
 #[tokio::main]
 async fn main() {

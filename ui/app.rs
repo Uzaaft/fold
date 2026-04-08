@@ -1,12 +1,12 @@
+use fold::forges::github::{self, PullRequestStatus, PullRequestStatusState};
 use gtk::{
-    gdk,
+    Align, Application, ApplicationWindow, Box as GtkBox, Button, CssProvider, Entry,
+    EventControllerKey, EventControllerMotion, Grid, Image, Label, ListBox, ListBoxRow,
+    Orientation, PolicyType, PropagationPhase, STYLE_PROVIDER_PRIORITY_APPLICATION, ScrolledWindow,
+    SelectionMode, Spinner, Widget, gdk,
     gio::{self, FileMonitor, FileMonitorFlags},
     glib,
     prelude::*,
-    Align, Application, ApplicationWindow, Box as GtkBox, Button, CssProvider, Entry,
-    EventControllerKey, EventControllerMotion, Grid, Image, Label, ListBox, ListBoxRow,
-    Orientation, PolicyType, PropagationPhase, ScrolledWindow, SelectionMode, Spinner, Widget,
-    STYLE_PROVIDER_PRIORITY_APPLICATION,
 };
 use std::{
     cell::{Cell, RefCell},
@@ -16,19 +16,18 @@ use std::{
     sync::mpsc,
     time::{Duration, Instant},
 };
-use swarm::forges::github::{self, PullRequestStatus, PullRequestStatusState};
 
 use crate::{
     data::{
-        add_repository, clone_workspace, collapse_repository, create_workspace,
-        current_workspace_branch, current_workspace_head, expand_repository, load_workspace_groups,
-        remove_workspace, rename_workspace, sync_repository, workspace_head_path, WorkspaceEntry,
-        WorkspaceGroup,
+        WorkspaceEntry, WorkspaceGroup, add_repository, clone_workspace, collapse_repository,
+        create_workspace, current_workspace_branch, current_workspace_head, expand_repository,
+        load_workspace_groups, remove_workspace, rename_workspace, sync_repository,
+        workspace_head_path,
     },
     workspace_panel::DetailWidgets,
 };
 
-const APP_ID: &str = "com.penberg.swarm.ui";
+const APP_ID: &str = "com.penberg.fold.ui";
 const MAX_PENDING_PR_LOOKUPS: usize = 2;
 const SELECTED_PR_STATUS_TTL: Duration = Duration::from_secs(5);
 const PENDING_PR_STATUS_TTL: Duration = Duration::from_secs(15);
@@ -468,7 +467,7 @@ fn build_ui(app: &Application) {
 
     let window = ApplicationWindow::builder()
         .application(app)
-        .title("swarm")
+        .title("fold")
         .default_width(1480)
         .default_height(920)
         .build();

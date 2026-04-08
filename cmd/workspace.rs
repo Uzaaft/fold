@@ -1,11 +1,11 @@
 use crate::{
-    SwarmError,
+    FoldError,
     opts::{WorkspaceCommand, WorkspaceSubcommand},
     sessions::{SessionStore, default_session_command},
     workspaces::WorkspaceStore,
 };
 
-pub async fn run(cmd: WorkspaceCommand) -> Result<(), SwarmError> {
+pub async fn run(cmd: WorkspaceCommand) -> Result<(), FoldError> {
     let store = WorkspaceStore::open().await?;
 
     match cmd.command {

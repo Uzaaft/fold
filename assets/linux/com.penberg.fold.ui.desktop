@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Fold
+Comment=Fold UI
+Exec=bash -lc "cd /home/penberg/.local/share/fold/repos/github/penberg/fold/workspaces/new-1 && cargo run --bin fold"
+Icon=com.penberg.fold.ui
+Terminal=false
+Categories=Development;
+StartupNotify=true

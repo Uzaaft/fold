@@ -1,8 +1,8 @@
 [package]
-name = "swarm"
+name = "fold"
 version = "0.1.3"
 edition = "2024"
-repository = "https://github.com/penberg/swarm"
+repository = "https://github.com/penberg/fold"
 
 [lib]
 path = "lib.rs"
@@ -26,12 +26,12 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 turso = "0.4"
 
 [[bin]]
-name = "swarmctl"
-path = "swarmctl.rs"
+name = "foldctl"
+path = "foldctl.rs"
 
 [[bin]]
-name = "swarm"
-path = "ui/swarm.rs"
+name = "fold"
+path = "ui/fold.rs"
 required-features = ["ui"]
 
 [patch.crates-io]
